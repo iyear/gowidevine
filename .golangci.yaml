@@ -1,0 +1,32 @@
+run:
+  timeout: 10m
+output:
+  sort-results: true
+linters:
+  disable-all: true
+  enable:
+    - gci
+    - gofumpt
+    - gosimple
+    - govet
+    - goconst
+    - ineffassign
+    - misspell
+    - staticcheck
+    - nakedret
+    - unconvert
+    - unused
+    - usestdlibvars
+    - exhaustive
+linters-settings:
+  exhaustive:
+    default-signifies-exhaustive: true
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/iyear/gowidevine)
+      - dot
+    custom-order: true
+  nakedret:
+    max-func-lines: 0 # force to use explicit return
