@@ -1,4 +1,4 @@
-package gowidevine
+package widevine
 
 import (
 	"bytes"

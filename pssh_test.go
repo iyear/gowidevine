@@ -1,4 +1,4 @@
-package gowidevine
+package widevine
 
 import (
 	"encoding/base64"
