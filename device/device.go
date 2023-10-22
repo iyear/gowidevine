@@ -1,4 +1,4 @@
-package cdms
+package device
 
 import (
 	"crypto/rsa"
@@ -19,7 +19,7 @@ const (
 	privateKeyFile = "private_key"
 )
 
-type CDM struct {
+type Device struct {
 	SystemID   int
 	ClientID   *wvpb.ClientIdentification
 	PrivateKey *rsa.PrivateKey
@@ -28,19 +28,19 @@ type CDM struct {
 //go:embed l3
 var l3 embed.FS
 
-// L3 is a collection of built-in L3 CDMs.
-var L3 []CDM
+// L3 is a collection of built-in L3 devices.
+var L3 []Device
 
 func init() {
-	if err := readCDMs(); err != nil {
+	if err := readBuildIns(); err != nil {
 		panic(err)
 	}
 }
 
-func readCDMs() error {
+func readBuildIns() error {
 	cdms := map[string]struct {
-		fs  embed.FS
-		cdm *[]CDM
+		fs      embed.FS
+		devices *[]Device
 	}{
 		"l3": {l3, &L3},
 		// TODO: add l1 and l2
@@ -83,7 +83,7 @@ func readCDMs() error {
 				return fmt.Errorf("parse private key: %w", err)
 			}
 
-			*cdm.cdm = append(*cdm.cdm, CDM{
+			*cdm.devices = append(*cdm.devices, Device{
 				SystemID:   sysid,
 				ClientID:   clientID,
 				PrivateKey: privateKey,
