@@ -11,14 +11,14 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
-func convertPSSH(t *testing.T, b64 string) []byte {
+func decodeBase64(t *testing.T, b64 string) []byte {
 	b, err := base64.StdEncoding.DecodeString(b64)
 	require.NoError(t, err)
 	return b
 }
 
 func TestNewPSSH(t *testing.T) {
-	pssh := convertPSSH(t, "AAAAU3Bzc2gAAAAA7e+LqXnWSs6jyCfc1R0h7QAAADMIARIQQATcHlpOAIf1Vdda4clXIBoHc3BvdGlmeSIUQATcHlpOAIf1Vdda4clXIDt20eY=")
+	pssh := decodeBase64(t, "AAAAU3Bzc2gAAAAA7e+LqXnWSs6jyCfc1R0h7QAAADMIARIQQATcHlpOAIf1Vdda4clXIBoHc3BvdGlmeSIUQATcHlpOAIf1Vdda4clXIDt20eY=")
 	p, err := NewPSSH(pssh)
 	require.NoError(t, err)
 
@@ -49,7 +49,7 @@ func TestNewPSSHFail(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, err := NewPSSH(convertPSSH(t, tt.pssh))
+		_, err := NewPSSH(decodeBase64(t, tt.pssh))
 		assert.Error(t, err)
 	}
 }
