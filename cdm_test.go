@@ -70,6 +70,7 @@ func TestNewCDM(t *testing.T) {
 
 	require.Len(t, keys, 1)
 	assert.Equal(t, wvpb.License_KeyContainer_CONTENT, keys[0].Type)
+	assert.Equal(t, "8421e83ef1d57ee79e4aaa4b0b38df47", hex.EncodeToString(keys[0].IV))
 	assert.Equal(t, "df6ef2f5fd83078091a78566c8d01925", hex.EncodeToString(keys[0].ID))
 	assert.Equal(t, "20be4041a33c7a081e43b2b4378d6d5c", hex.EncodeToString(keys[0].Key))
 }

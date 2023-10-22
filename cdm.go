@@ -25,6 +25,7 @@ const (
 
 type Key struct {
 	Type wvpb.License_KeyContainer_KeyType
+	IV   []byte
 	ID   []byte
 	Key  []byte
 }
@@ -240,6 +241,7 @@ func (c *CDM) parseLicense(license, licenseRequest []byte) ([]*Key, error) {
 
 		keys = append(keys, &Key{
 			Type: key.GetType(),
+			IV:   key.Iv,
 			ID:   key.GetId(),
 			Key:  decryptedKey,
 		})
