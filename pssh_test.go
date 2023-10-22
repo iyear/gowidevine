@@ -11,7 +11,7 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
-func decodeBase64(t *testing.T, b64 string) []byte {
+func decodeBase64(t require.TestingT, b64 string) []byte {
 	b, err := base64.StdEncoding.DecodeString(b64)
 	require.NoError(t, err)
 	return b
