@@ -19,6 +19,8 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
+var ServiceCertificateRequest = []byte{0x08, 0x04}
+
 const (
 	sessionKeyLength = 16
 )
