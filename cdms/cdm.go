@@ -1,4 +1,4 @@
-package cdm
+package cdms
 
 import (
 	"crypto/rsa"
