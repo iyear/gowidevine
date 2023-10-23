@@ -43,6 +43,12 @@ func (d *Device) PrivateKey() *rsa.PrivateKey {
 	return d.privateKey
 }
 
+//go:embed l1
+var l1 embed.FS
+
+// L1 is a collection of built-in L1 devices.
+var L1 []*Device
+
 //go:embed l3
 var l3 embed.FS
 
@@ -60,6 +66,7 @@ func readBuildIns() error {
 		fs      embed.FS
 		devices *[]*Device
 	}{
+		"l1": {l1, &L1},
 		"l3": {l3, &L3},
 		// TODO: add l1 and l2
 	}
