@@ -13,7 +13,7 @@ import (
 )
 
 func getDevice(t require.TestingT) *Device {
-	d, err := NewDevice(clientID, privateKey)
+	d, err := NewDevice(FromRaw(clientID, privateKey))
 	require.NoError(t, err)
 	return d
 }

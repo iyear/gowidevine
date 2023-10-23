@@ -20,8 +20,22 @@ type Device struct {
 	privateKey *rsa.PrivateKey
 }
 
-func NewDevice(clientID, privateKey []byte) (*Device, error) {
-	return toDevice(clientID, privateKey)
+type DeviceSource func() (*Device, error)
+
+func FromRaw(clientID, privateKey []byte) DeviceSource {
+	return func() (*Device, error) {
+		return toDevice(clientID, privateKey)
+	}
+}
+
+func FromWVD(r io.Reader) DeviceSource {
+	return func() (*Device, error) {
+		return fromWVD(r)
+	}
+}
+
+func NewDevice(src DeviceSource) (*Device, error) {
+	return src()
 }
 
 func (d *Device) ClientID() *wvpb.ClientIdentification {
@@ -51,7 +65,7 @@ type wvdDataV2 struct {
 	ClientID      []byte
 }
 
-func FromWVD(r io.Reader) (*Device, error) {
+func fromWVD(r io.Reader) (*Device, error) {
 	header := &wvdHeader{}
 	if err := binary.Read(r, binary.BigEndian, header); err != nil {
 		return nil, fmt.Errorf("read header: %w", err)

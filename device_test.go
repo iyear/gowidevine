@@ -16,8 +16,8 @@ var clientID []byte
 //go:embed testdata/device/private_key
 var privateKey []byte
 
-func TestNewDevice(t *testing.T) {
-	device, err := NewDevice(clientID, privateKey)
+func TestFromRaw(t *testing.T) {
+	device, err := NewDevice(FromRaw(clientID, privateKey))
 	require.NoError(t, err)
 
 	assert.Equal(t, uint32(4464), device.DrmCertificate().GetSystemId())
@@ -31,7 +31,7 @@ func TestNewDevice(t *testing.T) {
 var wvd []byte
 
 func TestFromWVD(t *testing.T) {
-	device, err := FromWVD(bytes.NewReader(wvd))
+	device, err := NewDevice(FromWVD(bytes.NewReader(wvd)))
 	require.NoError(t, err)
 
 	assert.Equal(t, uint32(5536), device.DrmCertificate().GetSystemId())
