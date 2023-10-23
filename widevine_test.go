@@ -14,7 +14,7 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
-//go:embed testdata/service-cert
+//go:embed testdata/license/service-cert
 var serviceCert []byte
 
 func TestParseServiceCert(t *testing.T) {

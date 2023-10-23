@@ -36,13 +36,13 @@ type fakeSource struct{}
 func (f fakeSource) Int63() int64 { return 0 }
 func (f fakeSource) Seed(_ int64) {}
 
-//go:embed testdata/pssh
+//go:embed testdata/license/pssh
 var psshData []byte
 
-//go:embed testdata/license-challenge
+//go:embed testdata/license/license-challenge
 var licenseChallenge []byte
 
-//go:embed testdata/license
+//go:embed testdata/license/license
 var license []byte
 
 func TestNewCDM(t *testing.T) {
