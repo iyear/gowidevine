@@ -4,8 +4,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"embed"
+	"encoding/binary"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"path"
 	"strconv"
 
@@ -20,7 +22,7 @@ const (
 )
 
 type Device struct {
-	SystemID   int
+	SystemID   uint32
 	ClientID   *wvpb.ClientIdentification
 	PrivateKey *rsa.PrivateKey
 }
@@ -57,7 +59,7 @@ func readBuildIns() error {
 				return fmt.Errorf("%s dir should not contain a regular file", name)
 			}
 
-			sysid, err := strconv.Atoi(file.Name())
+			sysid, err := strconv.ParseUint(file.Name(), 10, 32)
 			if err != nil {
 				return fmt.Errorf("system id conv: %w", err)
 			}
@@ -85,7 +87,7 @@ func readBuildIns() error {
 			}
 
 			*cdm.devices = append(*cdm.devices, Device{
-				SystemID:   sysid,
+				SystemID:   uint32(sysid),
 				ClientID:   clientID,
 				PrivateKey: privateKey,
 			})
@@ -110,4 +112,76 @@ func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
 	}
 
 	return nil, fmt.Errorf("unsupported private key type")
+}
+
+type wvdHeader struct {
+	Signature     [3]byte
+	Version       uint8
+	Type          uint8
+	SecurityLevel uint8
+	Flags         byte
+}
+
+type wvdDataV2 struct {
+	PrivateKeyLen uint16
+	PrivateKey    []byte
+	ClientIDLen   uint16
+	ClientID      []byte
+}
+
+func FromWVD(r io.Reader) (Device, error) {
+	header := &wvdHeader{}
+	if err := binary.Read(r, binary.BigEndian, header); err != nil {
+		return Device{}, fmt.Errorf("read header: %w", err)
+	}
+
+	if header.Signature != [3]byte{'W', 'V', 'D'} {
+		return Device{}, fmt.Errorf("invalid signature: %v", header.Signature)
+	}
+
+	rest, err := io.ReadAll(r)
+	if err != nil {
+		return Device{}, fmt.Errorf("read rest bytes: %w", err)
+	}
+
+	switch header.Version {
+	case 2:
+		data := &wvdDataV2{}
+		data.PrivateKeyLen = binary.BigEndian.Uint16(rest[:2])
+		data.PrivateKey = rest[2 : 2+data.PrivateKeyLen]
+		data.ClientIDLen = binary.BigEndian.Uint16(rest[2+data.PrivateKeyLen : 2+data.PrivateKeyLen+2])
+		data.ClientID = rest[2+data.PrivateKeyLen+2 : 2+data.PrivateKeyLen+2+data.ClientIDLen]
+
+		return toDevice(data.ClientID, data.PrivateKey)
+	default:
+		return Device{}, fmt.Errorf("unsupported version: %d", header.Version)
+	}
+}
+
+func toDevice(clientID, privateKey []byte) (Device, error) {
+	c := &wvpb.ClientIdentification{}
+	if err := proto.Unmarshal(clientID, c); err != nil {
+		return Device{}, fmt.Errorf("unmarshal client id: %w", err)
+	}
+
+	signedCert := &wvpb.SignedDrmCertificate{}
+	if err := proto.Unmarshal(c.Token, signedCert); err != nil {
+		return Device{}, fmt.Errorf("unmarshal signed cert: %w", err)
+	}
+
+	cert := &wvpb.DrmCertificate{}
+	if err := proto.Unmarshal(signedCert.DrmCertificate, cert); err != nil {
+		return Device{}, fmt.Errorf("unmarshal cert: %w", err)
+	}
+
+	key, err := parsePrivateKey(privateKey)
+	if err != nil {
+		return Device{}, fmt.Errorf("parse private key: %w", err)
+	}
+
+	return Device{
+		SystemID:   cert.GetSystemId(),
+		ClientID:   c,
+		PrivateKey: key,
+	}, nil
 }
