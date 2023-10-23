@@ -59,6 +59,10 @@ func WithNow(now func() time.Time) CDMOption {
 }
 
 func NewCDM(device *Device, opts ...CDMOption) *CDM {
+	if device == nil {
+		panic("device cannot be nil")
+	}
+
 	c := &CDM{
 		device: device,
 	}
