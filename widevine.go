@@ -7,7 +7,6 @@ import (
 	"crypto/rsa"
 	"encoding/asn1"
 	"fmt"
-	"math/big"
 
 	"github.com/chmike/cmac-go"
 	"google.golang.org/protobuf/proto"
@@ -35,15 +34,9 @@ func pkcs7Unpadding(data []byte, blockSize int) ([]byte, error) {
 }
 
 func parsePublicKey(pubKey []byte) (*rsa.PublicKey, error) {
-	var rsaPublicKey rsa.PublicKey
-	_, err := asn1.Unmarshal(pubKey, &rsaPublicKey)
-	if err != nil {
+	publicKey := &rsa.PublicKey{}
+	if _, err := asn1.Unmarshal(pubKey, publicKey); err != nil {
 		return nil, fmt.Errorf("unmarshal asn1: %w", err)
-	}
-
-	publicKey := &rsa.PublicKey{
-		N: new(big.Int).SetBytes(rsaPublicKey.N.Bytes()),
-		E: rsaPublicKey.E,
 	}
 
 	return publicKey, nil
