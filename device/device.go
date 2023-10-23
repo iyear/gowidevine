@@ -78,7 +78,8 @@ func readBuildIns() error {
 				return fmt.Errorf("read private key: %w", err)
 			}
 			block, _ := pem.Decode(privateKeyData)
-			privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+			// TODO: other types of private key
+			privateKey, err := parsePrivateKey(block.Bytes)
 			if err != nil {
 				return fmt.Errorf("parse private key: %w", err)
 			}
@@ -92,4 +93,21 @@ func readBuildIns() error {
 	}
 
 	return nil
+}
+
+// parsePrivateKey modified from https://go.dev/src/crypto/tls/tls.go#L339
+func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
+	if key, err := x509.ParsePKCS1PrivateKey(data); err == nil {
+		return key, nil
+	}
+	if key, err := x509.ParsePKCS8PrivateKey(data); err == nil {
+		switch k := key.(type) {
+		case *rsa.PrivateKey:
+			return k, nil
+		default:
+			return nil, fmt.Errorf("unsupported private key type: %T", k)
+		}
+	}
+
+	return nil, fmt.Errorf("unsupported private key type")
 }
