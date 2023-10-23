@@ -17,7 +17,7 @@ var l3cdm *device.Device
 
 func init() {
 	for _, l3 := range device.L3 {
-		if l3.SystemID == 4464 {
+		if l3.DrmCertificate().GetSystemId() == 4464 {
 			l3cdm = l3
 			break
 		}

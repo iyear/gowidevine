@@ -1,6 +1,7 @@
 package device
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
 	"embed"
@@ -21,9 +22,25 @@ const (
 )
 
 type Device struct {
-	SystemID   uint32
-	ClientID   *wvpb.ClientIdentification
-	PrivateKey *rsa.PrivateKey
+	clientID   *wvpb.ClientIdentification
+	cert       *wvpb.DrmCertificate
+	privateKey *rsa.PrivateKey
+}
+
+func New(clientID, privateKey []byte) (*Device, error) {
+	return toDevice(clientID, privateKey)
+}
+
+func (d *Device) ClientID() *wvpb.ClientIdentification {
+	return d.clientID
+}
+
+func (d *Device) DrmCertificate() *wvpb.DrmCertificate {
+	return d.cert
+}
+
+func (d *Device) PrivateKey() *rsa.PrivateKey {
+	return d.privateKey
 }
 
 //go:embed l3
@@ -69,9 +86,8 @@ func readBuildIns() error {
 			if err != nil {
 				return fmt.Errorf("read private key: %w", err)
 			}
-			block, _ := pem.Decode(privateKeyData)
 
-			device, err := toDevice(clientIDData, block.Bytes)
+			device, err := toDevice(clientIDData, privateKeyData)
 			if err != nil {
 				return fmt.Errorf("to device: %w", err)
 			}
@@ -149,18 +165,29 @@ func toDevice(clientID, privateKey []byte) (*Device, error) {
 	}
 
 	return &Device{
-		SystemID:   cert.GetSystemId(),
-		ClientID:   c,
-		PrivateKey: key,
+		clientID:   c,
+		cert:       cert,
+		privateKey: key,
 	}, nil
 }
 
 // parsePrivateKey modified from https://go.dev/src/crypto/tls/tls.go#L339
 func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
-	if key, err := x509.ParsePKCS1PrivateKey(data); err == nil {
+	var b = make([]byte, len(data))
+	copy(b, data)
+
+	if bytes.HasPrefix(data, []byte("-----")) {
+		block, _ := pem.Decode(data)
+		if block == nil {
+			return nil, fmt.Errorf("failed to decode PEM block containing private key")
+		}
+		b = block.Bytes
+	}
+
+	if key, err := x509.ParsePKCS1PrivateKey(b); err == nil {
 		return key, nil
 	}
-	if key, err := x509.ParsePKCS8PrivateKey(data); err == nil {
+	if key, err := x509.ParsePKCS8PrivateKey(b); err == nil {
 		switch k := key.(type) {
 		case *rsa.PrivateKey:
 			return k, nil

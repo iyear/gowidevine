@@ -115,7 +115,7 @@ func (c *CDM) GetLicenseChallenge(pssh *PSSH, typ wvpb.LicenseType, privacyMode 
 
 		req.EncryptedClientId = encClientID
 	} else {
-		req.ClientId = c.device.ClientID
+		req.ClientId = c.device.ClientID()
 	}
 
 	reqData, err := proto.Marshal(req)
@@ -127,7 +127,7 @@ func (c *CDM) GetLicenseChallenge(pssh *PSSH, typ wvpb.LicenseType, privacyMode 
 	hashed := sha1.Sum(reqData)
 	pss, err := rsa.SignPSS(
 		rand.New(c.rand),
-		c.device.PrivateKey,
+		c.device.PrivateKey(),
 		crypto.SHA1,
 		hashed[:],
 		&rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
@@ -161,7 +161,7 @@ func (c *CDM) encryptClientID(cert *wvpb.DrmCertificate) (*wvpb.EncryptedClientI
 	}
 
 	// encryptedClientID
-	clientID, err := proto.Marshal(c.device.ClientID)
+	clientID, err := proto.Marshal(c.device.ClientID())
 	if err != nil {
 		return nil, fmt.Errorf("marshal client id: %w", err)
 	}
@@ -211,7 +211,7 @@ func (c *CDM) parseLicense(license, licenseRequest []byte) ([]*Key, error) {
 		return nil, fmt.Errorf("invalid license type: %v", signedMsg.GetType())
 	}
 
-	sessionKey, err := c.rsaOAEPDecrypt(c.device.PrivateKey, signedMsg.SessionKey)
+	sessionKey, err := c.rsaOAEPDecrypt(c.device.PrivateKey(), signedMsg.SessionKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt session key: %w", err)
 	}
