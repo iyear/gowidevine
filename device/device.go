@@ -31,7 +31,7 @@ type Device struct {
 var l3 embed.FS
 
 // L3 is a collection of built-in L3 devices.
-var L3 []Device
+var L3 []*Device
 
 func init() {
 	if err := readBuildIns(); err != nil {
@@ -42,7 +42,7 @@ func init() {
 func readBuildIns() error {
 	cdms := map[string]struct {
 		fs      embed.FS
-		devices *[]Device
+		devices *[]*Device
 	}{
 		"l3": {l3, &L3},
 		// TODO: add l1 and l2
@@ -86,7 +86,7 @@ func readBuildIns() error {
 				return fmt.Errorf("parse private key: %w", err)
 			}
 
-			*cdm.devices = append(*cdm.devices, Device{
+			*cdm.devices = append(*cdm.devices, &Device{
 				SystemID:   uint32(sysid),
 				ClientID:   clientID,
 				PrivateKey: privateKey,
@@ -129,19 +129,19 @@ type wvdDataV2 struct {
 	ClientID      []byte
 }
 
-func FromWVD(r io.Reader) (Device, error) {
+func FromWVD(r io.Reader) (*Device, error) {
 	header := &wvdHeader{}
 	if err := binary.Read(r, binary.BigEndian, header); err != nil {
-		return Device{}, fmt.Errorf("read header: %w", err)
+		return nil, fmt.Errorf("read header: %w", err)
 	}
 
 	if header.Signature != [3]byte{'W', 'V', 'D'} {
-		return Device{}, fmt.Errorf("invalid signature: %v", header.Signature)
+		return nil, fmt.Errorf("invalid signature: %v", header.Signature)
 	}
 
 	rest, err := io.ReadAll(r)
 	if err != nil {
-		return Device{}, fmt.Errorf("read rest bytes: %w", err)
+		return nil, fmt.Errorf("read rest bytes: %w", err)
 	}
 
 	switch header.Version {
@@ -154,32 +154,32 @@ func FromWVD(r io.Reader) (Device, error) {
 
 		return toDevice(data.ClientID, data.PrivateKey)
 	default:
-		return Device{}, fmt.Errorf("unsupported version: %d", header.Version)
+		return nil, fmt.Errorf("unsupported version: %d", header.Version)
 	}
 }
 
-func toDevice(clientID, privateKey []byte) (Device, error) {
+func toDevice(clientID, privateKey []byte) (*Device, error) {
 	c := &wvpb.ClientIdentification{}
 	if err := proto.Unmarshal(clientID, c); err != nil {
-		return Device{}, fmt.Errorf("unmarshal client id: %w", err)
+		return nil, fmt.Errorf("unmarshal client id: %w", err)
 	}
 
 	signedCert := &wvpb.SignedDrmCertificate{}
 	if err := proto.Unmarshal(c.Token, signedCert); err != nil {
-		return Device{}, fmt.Errorf("unmarshal signed cert: %w", err)
+		return nil, fmt.Errorf("unmarshal signed cert: %w", err)
 	}
 
 	cert := &wvpb.DrmCertificate{}
 	if err := proto.Unmarshal(signedCert.DrmCertificate, cert); err != nil {
-		return Device{}, fmt.Errorf("unmarshal cert: %w", err)
+		return nil, fmt.Errorf("unmarshal cert: %w", err)
 	}
 
 	key, err := parsePrivateKey(privateKey)
 	if err != nil {
-		return Device{}, fmt.Errorf("parse private key: %w", err)
+		return nil, fmt.Errorf("parse private key: %w", err)
 	}
 
-	return Device{
+	return &Device{
 		SystemID:   cert.GetSystemId(),
 		ClientID:   c,
 		PrivateKey: key,

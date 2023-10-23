@@ -13,7 +13,7 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
-var l3cdm device.Device
+var l3cdm *device.Device
 
 func init() {
 	for _, l3 := range device.L3 {

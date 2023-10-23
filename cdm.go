@@ -33,7 +33,7 @@ type Key struct {
 }
 
 type CDM struct {
-	device device.Device
+	device *device.Device
 	rand   *rand.Rand
 	now    func() time.Time
 }
@@ -50,7 +50,7 @@ func defaultCDMOptions() []CDMOption {
 	}
 }
 
-func WithDevice(device device.Device) CDMOption {
+func WithDevice(device *device.Device) CDMOption {
 	return func(c *CDM) {
 		c.device = device
 	}
