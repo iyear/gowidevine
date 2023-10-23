@@ -15,7 +15,6 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/iyear/gowidevine/device"
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
@@ -33,7 +32,7 @@ type Key struct {
 }
 
 type CDM struct {
-	device *device.Device
+	device *Device
 	rand   *rand.Rand
 	now    func() time.Time
 }
@@ -41,18 +40,9 @@ type CDM struct {
 type CDMOption func(*CDM)
 
 func defaultCDMOptions() []CDMOption {
-	l3device := device.L3[rand.Intn(len(device.L3))]
-
 	return []CDMOption{
-		WithDevice(l3device),
 		WithRandom(rand.NewSource(time.Now().UnixNano())),
 		WithNow(time.Now),
-	}
-}
-
-func WithDevice(device *device.Device) CDMOption {
-	return func(c *CDM) {
-		c.device = device
 	}
 }
 
@@ -68,8 +58,10 @@ func WithNow(now func() time.Time) CDMOption {
 	}
 }
 
-func NewCDM(opts ...CDMOption) *CDM {
-	c := &CDM{}
+func NewCDM(device *Device, opts ...CDMOption) *CDM {
+	c := &CDM{
+		device: device,
+	}
 
 	for _, opt := range defaultCDMOptions() {
 		opt(c)

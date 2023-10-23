@@ -9,23 +9,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/iyear/gowidevine/device"
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
-var l3cdm *device.Device
-
-func init() {
-	for _, l3 := range device.L3 {
-		if l3.DrmCertificate().GetSystemId() == 4464 {
-			l3cdm = l3
-			break
-		}
-	}
+func getDevice(t require.TestingT) *Device {
+	d, err := NewDevice(clientID, privateKey)
+	require.NoError(t, err)
+	return d
 }
 
 func TestRandomBytes(t *testing.T) {
-	cdm := NewCDM()
+	cdm := NewCDM(getDevice(t))
 
 	assert.Equal(t, 16, len(cdm.randomBytes(16)))
 	assert.Equal(t, 32, len(cdm.randomBytes(32)))
@@ -47,7 +41,7 @@ var license []byte
 
 func TestNewCDM(t *testing.T) {
 	cdm := NewCDM(
-		WithDevice(l3cdm),
+		getDevice(t),
 		WithRandom(fakeSource{}),
 		WithNow(func() time.Time { return time.Unix(0, 0) }),
 	)

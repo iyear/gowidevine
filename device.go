@@ -1,24 +1,17 @@
-package device
+package widevine
 
 import (
 	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
-	"embed"
 	"encoding/binary"
 	"encoding/pem"
 	"fmt"
 	"io"
-	"path"
 
 	"google.golang.org/protobuf/proto"
 
 	wvpb "github.com/iyear/gowidevine/widevinepb"
-)
-
-const (
-	clientIDFile   = "client_id"
-	privateKeyFile = "private_key"
 )
 
 type Device struct {
@@ -27,7 +20,7 @@ type Device struct {
 	privateKey *rsa.PrivateKey
 }
 
-func New(clientID, privateKey []byte) (*Device, error) {
+func NewDevice(clientID, privateKey []byte) (*Device, error) {
 	return toDevice(clientID, privateKey)
 }
 
@@ -41,69 +34,6 @@ func (d *Device) DrmCertificate() *wvpb.DrmCertificate {
 
 func (d *Device) PrivateKey() *rsa.PrivateKey {
 	return d.privateKey
-}
-
-//go:embed l1
-var l1 embed.FS
-
-// L1 is a collection of built-in L1 devices.
-var L1 []*Device
-
-//go:embed l3
-var l3 embed.FS
-
-// L3 is a collection of built-in L3 devices.
-var L3 []*Device
-
-func init() {
-	if err := readBuildIns(); err != nil {
-		panic(err)
-	}
-}
-
-func readBuildIns() error {
-	cdms := map[string]struct {
-		fs      embed.FS
-		devices *[]*Device
-	}{
-		"l1": {l1, &L1},
-		"l3": {l3, &L3},
-		// TODO: add l1 and l2
-	}
-
-	for name, cdm := range cdms {
-		dir, err := cdm.fs.ReadDir(name)
-		if err != nil {
-			return fmt.Errorf("read dir: %w", err)
-		}
-
-		for _, file := range dir {
-			if !file.IsDir() {
-				return fmt.Errorf("%s dir should not contain a regular file", name)
-			}
-
-			base := path.Join(name, file.Name())
-
-			clientIDData, err := cdm.fs.ReadFile(path.Join(base, clientIDFile))
-			if err != nil {
-				return fmt.Errorf("read client id: %w", err)
-			}
-
-			privateKeyData, err := cdm.fs.ReadFile(path.Join(base, privateKeyFile))
-			if err != nil {
-				return fmt.Errorf("read private key: %w", err)
-			}
-
-			device, err := toDevice(clientIDData, privateKeyData)
-			if err != nil {
-				return fmt.Errorf("to device: %w", err)
-			}
-
-			*cdm.devices = append(*cdm.devices, device)
-		}
-	}
-
-	return nil
 }
 
 type wvdHeader struct {

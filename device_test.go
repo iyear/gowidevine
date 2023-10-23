@@ -1,4 +1,4 @@
-package device
+package widevine
 
 import (
 	"bytes"
@@ -10,22 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestL3Device(t *testing.T) {
-	assert.Greater(t, len(L1), 0)
-	t.Logf("L1 Devices: %v", len(L1))
-
-	assert.Greater(t, len(L3), 0)
-	t.Logf("L3 Devices: %v", len(L3))
-}
-
-//go:embed l3/4464/client_id
+//go:embed testdata/device/client_id
 var clientID []byte
 
-//go:embed l3/4464/private_key
+//go:embed testdata/device/private_key
 var privateKey []byte
 
 func TestNewDevice(t *testing.T) {
-	device, err := New(clientID, privateKey)
+	device, err := NewDevice(clientID, privateKey)
 	require.NoError(t, err)
 
 	assert.Equal(t, uint32(4464), device.DrmCertificate().GetSystemId())
@@ -35,7 +27,7 @@ func TestNewDevice(t *testing.T) {
 	assert.Equal(t, 256, device.PrivateKey().Size())
 }
 
-//go:embed testdata/samsung.wvd
+//go:embed testdata/device/test.wvd
 var wvd []byte
 
 func TestFromWVD(t *testing.T) {
