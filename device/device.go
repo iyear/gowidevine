@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"strconv"
 
 	"google.golang.org/protobuf/proto"
 
@@ -59,20 +58,11 @@ func readBuildIns() error {
 				return fmt.Errorf("%s dir should not contain a regular file", name)
 			}
 
-			sysid, err := strconv.ParseUint(file.Name(), 10, 32)
-			if err != nil {
-				return fmt.Errorf("system id conv: %w", err)
-			}
-
 			base := path.Join(name, file.Name())
 
 			clientIDData, err := cdm.fs.ReadFile(path.Join(base, clientIDFile))
 			if err != nil {
 				return fmt.Errorf("read client id: %w", err)
-			}
-			clientID := &wvpb.ClientIdentification{}
-			if err := proto.Unmarshal(clientIDData, clientID); err != nil {
-				return fmt.Errorf("unmarshal client id: %w", err)
 			}
 
 			privateKeyData, err := cdm.fs.ReadFile(path.Join(base, privateKeyFile))
@@ -80,38 +70,17 @@ func readBuildIns() error {
 				return fmt.Errorf("read private key: %w", err)
 			}
 			block, _ := pem.Decode(privateKeyData)
-			// TODO: other types of private key
-			privateKey, err := parsePrivateKey(block.Bytes)
+
+			device, err := toDevice(clientIDData, block.Bytes)
 			if err != nil {
-				return fmt.Errorf("parse private key: %w", err)
+				return fmt.Errorf("to device: %w", err)
 			}
 
-			*cdm.devices = append(*cdm.devices, &Device{
-				SystemID:   uint32(sysid),
-				ClientID:   clientID,
-				PrivateKey: privateKey,
-			})
+			*cdm.devices = append(*cdm.devices, device)
 		}
 	}
 
 	return nil
-}
-
-// parsePrivateKey modified from https://go.dev/src/crypto/tls/tls.go#L339
-func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
-	if key, err := x509.ParsePKCS1PrivateKey(data); err == nil {
-		return key, nil
-	}
-	if key, err := x509.ParsePKCS8PrivateKey(data); err == nil {
-		switch k := key.(type) {
-		case *rsa.PrivateKey:
-			return k, nil
-		default:
-			return nil, fmt.Errorf("unsupported private key type: %T", k)
-		}
-	}
-
-	return nil, fmt.Errorf("unsupported private key type")
 }
 
 type wvdHeader struct {
@@ -184,4 +153,21 @@ func toDevice(clientID, privateKey []byte) (*Device, error) {
 		ClientID:   c,
 		PrivateKey: key,
 	}, nil
+}
+
+// parsePrivateKey modified from https://go.dev/src/crypto/tls/tls.go#L339
+func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
+	if key, err := x509.ParsePKCS1PrivateKey(data); err == nil {
+		return key, nil
+	}
+	if key, err := x509.ParsePKCS8PrivateKey(data); err == nil {
+		switch k := key.(type) {
+		case *rsa.PrivateKey:
+			return k, nil
+		default:
+			return nil, fmt.Errorf("unsupported private key type: %T", k)
+		}
+	}
+
+	return nil, fmt.Errorf("unsupported private key type")
 }
