@@ -122,6 +122,11 @@ func getKeys() ([]*widevine.Key, error) {
 }
 ```
 
+## Thanks
+
+- [pywidevine](https://github.com/rlaphoenix/pywidevine)
+- [mp4ff](https://github.com/Eyevinn/mp4ff/)
+
 ## Disclaimer
 
 - The project does not provide Google-provisioned private key and client id except for test purpose.
