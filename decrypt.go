@@ -4,8 +4,14 @@ package widevine
 import (
 	"bytes"
 	"fmt"
-	"github.com/Eyevinn/mp4ff/mp4"
 	"io"
+
+	"github.com/Eyevinn/mp4ff/mp4"
+)
+
+const (
+	schemeCENC = "cenc"
+	schemeCBCS = "cbcs"
 )
 
 func DecryptMP4(r io.Reader, key []byte, w io.Writer) error {
@@ -56,7 +62,7 @@ func DecryptMP4(r io.Reader, key []byte, w io.Writer) error {
 				continue
 			}
 		}
-		if schemeType != "" && schemeType != "cenc" && schemeType != "cbcs" {
+		if schemeType != "" && schemeType != schemeCENC && schemeType != schemeCBCS {
 			return fmt.Errorf("scheme type %s not supported", schemeType)
 		}
 		if schemeType == "" {
@@ -146,7 +152,7 @@ func decryptFragment(frag *mp4.Fragment, tracks []trackInfo, key []byte) error {
 		ti := findTrackInfo(tracks, traf.Tfhd.TrackID)
 		if ti.sinf != nil {
 			schemeType := ti.sinf.Schm.SchemeType
-			if schemeType != "cenc" && schemeType != "cbcs" {
+			if schemeType != schemeCENC && schemeType != schemeCBCS {
 				return fmt.Errorf("scheme type %s not supported", schemeType)
 			}
 			hasSenc, isParsed := traf.ContainsSencBox()
@@ -188,7 +194,6 @@ func decryptFragment(frag *mp4.Fragment, tracks []trackInfo, key []byte) error {
 
 // decryptSample - decrypt samples inplace
 func decryptSamplesInPlace(schemeType string, samples []mp4.FullSample, key []byte, tenc *mp4.TencBox, senc *mp4.SencBox) error {
-
 	// TODO. Interpret saio and saiz to get to the right place
 	// Saio tells where the IV starts relative to moof start
 	// It typically ends up inside senc (16 bytes after start)
@@ -216,12 +221,12 @@ func decryptSamplesInPlace(schemeType string, samples []mp4.FullSample, key []by
 			subSamplePatterns = senc.SubSamples[i]
 		}
 		switch schemeType {
-		case "cenc":
+		case schemeCENC:
 			err := mp4.DecryptSampleCenc(encSample, key, iv, subSamplePatterns)
 			if err != nil {
 				return err
 			}
-		case "cbcs":
+		case schemeCBCS:
 			err := mp4.DecryptSampleCbcs(encSample, key, iv, subSamplePatterns, tenc)
 			if err != nil {
 				return err

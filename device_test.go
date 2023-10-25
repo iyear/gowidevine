@@ -3,11 +3,12 @@ package widevine
 import (
 	"bytes"
 	_ "embed"
-	wvpb "github.com/iyear/gowidevine/widevinepb"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
 //go:embed testdata/device/client_id

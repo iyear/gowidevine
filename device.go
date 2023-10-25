@@ -124,7 +124,7 @@ func toDevice(clientID, privateKey []byte) (*Device, error) {
 
 // parsePrivateKey modified from https://go.dev/src/crypto/tls/tls.go#L339
 func parsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
-	var b = make([]byte, len(data))
+	b := make([]byte, len(data))
 	copy(b, data)
 
 	if bytes.HasPrefix(data, []byte("-----")) {

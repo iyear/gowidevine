@@ -3,11 +3,12 @@ package widevine
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func decodeHex(t require.TestingT, h string) []byte {
