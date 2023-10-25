@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [ master ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/*.yml'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Golang env
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: false # conflict with golangci-lint cache
+      - name: lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Golang env
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Unit Test
+        run: go test -v
