@@ -23,7 +23,9 @@
 
 ### Install
 
-You first need [Go](https://go.dev/) installed (version 1.18+ is required), then you can use the below Go command to install gowidevine:
+You first need [Go](https://go.dev/) installed (version 1.18+ is required), then you can use the below Go command to
+install gowidevine:
+
 ```shell
 go get -u github.com/iyear/gowidevine
 ```
@@ -31,6 +33,7 @@ go get -u github.com/iyear/gowidevine
 ### Import
 
 Import the package into your project:
+
 ```go
 import "github.com/iyear/gowidevine"
 ```
@@ -41,84 +44,113 @@ import "github.com/iyear/gowidevine"
 package main
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"net/http"
+    "bytes"
+    "fmt"
+    "io"
+    "net/http"
 
-	widevine "github.com/iyear/gowidevine"
-	"github.com/iyear/gowidevine/widevinepb"
+    widevine "github.com/iyear/gowidevine"
+    "github.com/iyear/gowidevine/widevinepb"
 )
 
 var (
-	clientID   = []byte("foo")
-	privateKey = []byte("bar")
-	psshData   = []byte("baz")
+    clientID   = []byte("foo")
+    privateKey = []byte("bar")
+    psshData   = []byte("baz")
 )
 
 func main() {
-	keys, err := getKeys()
-	if err != nil {
-		panic(err)
-	}
-	if len(keys) == 0 {
-		panic("no keys")
-	}
+    keys, err := getKeys()
+    if err != nil {
+        panic(err)
+    }
+    if len(keys) == 0 {
+        panic("no keys")
+    }
 
-	for _, key := range keys {
-		fmt.Printf("type: %s, id: %x, key: %x\n", key.Type, key.ID, key.Key)
-	}
+    for _, key := range keys {
+        fmt.Printf("type: %s, id: %x, key: %x\n", key.Type, key.ID, key.Key)
+    }
 
-	err = widevine.DecryptMP4(bytes.NewBufferString("encrypted data"),
-		keys[0].Key, io.Discard)
-	if err != nil {
-		panic(err)
-	}
+    err = widevine.DecryptMP4(bytes.NewBufferString("encrypted data"),
+        keys[0].Key, io.Discard)
+    if err != nil {
+        panic(err)
+    }
 }
 
 func getKeys() ([]*widevine.Key, error) {
-	// Create device from raw data or from wvd file
-	device, err := widevine.NewDevice(
-		widevine.FromRaw(clientID, privateKey),
-		// widevine.FromWVD(bytes.NewReader([]byte("baz"))),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create device: %w", err)
-	}
-	// Create CDM
-	cdm := widevine.NewCDM(device)
+    // Create device from raw data or from wvd file
+    device, err := widevine.NewDevice(
+        widevine.FromRaw(clientID, privateKey),
+        // widevine.FromWVD(bytes.NewReader([]byte("baz"))),
+    )
+    if err != nil {
+        return nil, fmt.Errorf("create device: %w", err)
+    }
+    // Create CDM
+    cdm := widevine.NewCDM(device)
 
-	// Parse PSSH
-	pssh, err := widevine.NewPSSH(psshData)
-	if err != nil {
-		return nil, fmt.Errorf("parse pssh: %w", err)
-	}
+    // Parse PSSH
+    pssh, err := widevine.NewPSSH(psshData)
+    if err != nil {
+        return nil, fmt.Errorf("parse pssh: %w", err)
+    }
 
-	// Get license challenge
-	challenge, parseLicense, err := cdm.GetLicenseChallenge(pssh, widevinepb.LicenseType_AUTOMATIC, false)
-	if err != nil {
-		return nil, fmt.Errorf("get license challenge: %w", err)
-	}
+    // Get license challenge
+    challenge, parseLicense, err := cdm.GetLicenseChallenge(pssh, widevinepb.LicenseType_AUTOMATIC, false)
+    if err != nil {
+        return nil, fmt.Errorf("get license challenge: %w", err)
+    }
+    // Or use privacy mode
+    cert, err := getServiceCert()
+    if err != nil {
+        return nil, fmt.Errorf("get service cert: %w", err)
+    }
+    challenge, parseLicense, err = cdm.GetLicenseChallenge(pssh, widevinepb.LicenseType_AUTOMATIC, true, cert)
+    if err != nil {
+        return nil, fmt.Errorf("get license challenge: %w", err)
+    }
 
-	// Send challenge to license server
-	resp, err := http.DefaultClient.Do(&http.Request{Body: io.NopCloser(bytes.NewReader(challenge))})
-	if err != nil {
-		return nil, fmt.Errorf("request license: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
+    // Send challenge to license server
+    resp, err := http.DefaultClient.Do(&http.Request{Body: io.NopCloser(bytes.NewReader(challenge))})
+    if err != nil {
+        return nil, fmt.Errorf("request license: %w", err)
+    }
+    defer func() { _ = resp.Body.Close() }()
 
-	license, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read resp: %w", err)
-	}
+    license, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("read resp: %w", err)
+    }
 
-	// Parse license
-	keys, err := parseLicense(license)
-	if err != nil {
-		return nil, fmt.Errorf("parse license: %w", err)
-	}
+    // Parse license
+    keys, err := parseLicense(license)
+    if err != nil {
+        return nil, fmt.Errorf("parse license: %w", err)
+    }
 
-	return keys, nil
+    return keys, nil
+}
+
+func getServiceCert() (*widevinepb.DrmCertificate, error) {
+    resp, err := http.DefaultClient.Do(&http.Request{Body: io.NopCloser(bytes.NewReader(widevine.ServiceCertificateRequest))})
+    if err != nil {
+        return nil, fmt.Errorf("request service cert: %w", err)
+    }
+    defer func() { _ = resp.Body.Close() }()
+
+    serviceCert, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("read response: %w", err)
+    }
+
+    cert, err := widevine.ParseServiceCert(serviceCert)
+    if err != nil {
+        return nil, fmt.Errorf("parse service cert: %w", err)
+    }
+
+    return cert, nil
 }
 ```
 
