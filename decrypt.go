@@ -14,6 +14,7 @@ const (
 	schemeCBCS = "cbcs"
 )
 
+// DecryptMP4 decrypts a fragmented MP4 file with the given key. Supports CENC and CBCS schemes.
 func DecryptMP4(r io.Reader, key []byte, w io.Writer) error {
 	inMp4, err := mp4.DecodeFile(r)
 	if err != nil {

@@ -18,6 +18,7 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
+// ServiceCertificateRequest is the constant request for getting the service certificate from the Widevine license server.
 var ServiceCertificateRequest = []byte{0x08, 0x04}
 
 const (
@@ -25,12 +26,17 @@ const (
 )
 
 type Key struct {
+	// Type is the type of key.
 	Type wvpb.License_KeyContainer_KeyType
-	IV   []byte
-	ID   []byte
-	Key  []byte
+	// IV is the initialization vector of the key.
+	IV []byte
+	// ID is the ID of the key.
+	ID []byte
+	// Key is the key.
+	Key []byte
 }
 
+// CDM implements the Widevine CDM protocol.
 type CDM struct {
 	device *Device
 	rand   *rand.Rand
@@ -46,18 +52,23 @@ func defaultCDMOptions() []CDMOption {
 	}
 }
 
+// WithRandom sets the random source of the CDM.
 func WithRandom(source rand.Source) CDMOption {
 	return func(c *CDM) {
 		c.rand = rand.New(source)
 	}
 }
 
+// WithNow sets the time now source of the CDM.
 func WithNow(now func() time.Time) CDMOption {
 	return func(c *CDM) {
 		c.now = now
 	}
 }
 
+// NewCDM creates a new CDM.
+//
+// Get device by calling NewDevice.
 func NewCDM(device *Device, opts ...CDMOption) *CDM {
 	if device == nil {
 		panic("device cannot be nil")
@@ -78,6 +89,9 @@ func NewCDM(device *Device, opts ...CDMOption) *CDM {
 	return c
 }
 
+// GetLicenseChallenge returns the license challenge for the given PSSH.
+//
+// Set privacyMode to true to enable privacy mode, and you must provide a service certificate.
 func (c *CDM) GetLicenseChallenge(pssh *PSSH, typ wvpb.LicenseType, privacyMode bool, serviceCert ...*wvpb.DrmCertificate) ([]byte, func(b []byte) ([]*Key, error), error) {
 	req := &wvpb.LicenseRequest{
 		Type:            wvpb.LicenseRequest_NEW.Enum(),

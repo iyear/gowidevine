@@ -75,6 +75,7 @@ func decryptAES(key, iv, ciphertext []byte) ([]byte, error) {
 	return unpaddedPlaintext, nil
 }
 
+// ParseServiceCert parses a service certificate which can be used in privacy mode.
 func ParseServiceCert(serviceCert []byte) (*wvpb.DrmCertificate, error) {
 	msg := wvpb.SignedMessage{}
 	err := proto.Unmarshal(serviceCert, &msg)

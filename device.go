@@ -14,38 +14,46 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
+// Device represents a Widevine device.
 type Device struct {
 	clientID   *wvpb.ClientIdentification
 	cert       *wvpb.DrmCertificate
 	privateKey *rsa.PrivateKey
 }
 
+// DeviceSource is a function that returns a Device.
 type DeviceSource func() (*Device, error)
 
+// FromRaw creates a Device from raw client ID and private key data.
 func FromRaw(clientID, privateKey []byte) DeviceSource {
 	return func() (*Device, error) {
 		return toDevice(clientID, privateKey)
 	}
 }
 
+// FromWVD creates a Device from a WVD file.
 func FromWVD(r io.Reader) DeviceSource {
 	return func() (*Device, error) {
 		return fromWVD(r)
 	}
 }
 
+// NewDevice creates a Device from a DeviceSource.
 func NewDevice(src DeviceSource) (*Device, error) {
 	return src()
 }
 
+// ClientID returns the client ID of the device.
 func (d *Device) ClientID() *wvpb.ClientIdentification {
 	return d.clientID
 }
 
+// DrmCertificate returns the DRM certificate of the device.
 func (d *Device) DrmCertificate() *wvpb.DrmCertificate {
 	return d.cert
 }
 
+// PrivateKey returns the private key of the device.
 func (d *Device) PrivateKey() *rsa.PrivateKey {
 	return d.privateKey
 }

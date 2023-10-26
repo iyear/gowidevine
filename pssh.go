@@ -11,13 +11,16 @@ import (
 	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
+// WidevineSystemID is the system ID of Widevine.
 const WidevineSystemID = "edef8ba979d64acea3c827dcd51d21ed"
 
+// PSSH represents a PSSH box containing Widevine data.
 type PSSH struct {
 	box  *mp4.PsshBox
 	data *wvpb.WidevinePsshData
 }
 
+// NewPSSH creates a PSSH from bytes
 func NewPSSH(b []byte) (*PSSH, error) {
 	box, err := mp4.DecodeBox(0, bytes.NewReader(b))
 	if err != nil {
@@ -44,18 +47,22 @@ func NewPSSH(b []byte) (*PSSH, error) {
 	}, nil
 }
 
+// Version returns the version of the PSSH box.
 func (p *PSSH) Version() byte {
 	return p.box.Version
 }
 
+// Flags returns the flags of the PSSH box.
 func (p *PSSH) Flags() uint32 {
 	return p.box.Flags
 }
 
+// RawData returns the data of the PSSH box.
 func (p *PSSH) RawData() []byte {
 	return p.box.Data
 }
 
+// Data returns the parsed data of the PSSH box.
 func (p *PSSH) Data() *wvpb.WidevinePsshData {
 	return p.data
 }
