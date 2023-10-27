@@ -7,8 +7,8 @@
 <p align="center">
 <img src="https://img.shields.io/github/go-mod/go-version/iyear/gowidevine?style=flat-square" alt="">
 <img src="https://img.shields.io/github/license/iyear/gowidevine?style=flat-square" alt="">
-<img src="https://img.shields.io/github/actions/workflow/status/iyear/widevine/master.yml?branch=master&amp;style=flat-square" alt="">
-<img src="https://img.shields.io/github/v/release/iyear/widevine?color=red&amp;style=flat-square" alt="">
+<img src="https://img.shields.io/github/actions/workflow/status/iyear/gowidevine/ci.yml?branch=master&amp;style=flat-square" alt="">
+<img src="https://img.shields.io/github/v/release/iyear/gowidevine?color=red&amp;style=flat-square" alt="">
 </p>
 
 ## Features
