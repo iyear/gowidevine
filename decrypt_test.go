@@ -40,7 +40,7 @@ func TestDecryptMP4(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 
 		err := DecryptMP4(bytes.NewReader(readFile(tt.input)), decodeHex(t, tt.key), buf)
-		require.NoError(t, err)
+		require.NoError(t, err, tt.name)
 
 		assert.Equal(t, readFile(tt.expected), buf.Bytes(), tt.name)
 	}
