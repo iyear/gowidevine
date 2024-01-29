@@ -3,7 +3,7 @@ module github.com/iyear/gowidevine
 go 1.18
 
 require (
-	github.com/Eyevinn/mp4ff v0.39.0
+	github.com/Eyevinn/mp4ff v0.42.0
 	github.com/chmike/cmac-go v1.1.0
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/protobuf v1.32.0
