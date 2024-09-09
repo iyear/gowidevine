@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	wvpb "github.com/iyear/gowidevine/widevinepb"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
 func decodeHex(t require.TestingT, h string) []byte {

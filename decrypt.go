@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	wvpb "github.com/iyear/gowidevine/widevinepb"
-
 	"github.com/Eyevinn/mp4ff/mp4"
+
+	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
 // Adapted from https://github.com/Eyevinn/mp4ff/blob/v0.46.0/cmd/mp4ff-decrypt/main.go
