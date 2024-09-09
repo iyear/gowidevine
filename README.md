@@ -73,7 +73,7 @@ func main() {
     }
 
     err = widevine.DecryptMP4(bytes.NewBufferString("encrypted data"),
-        keys[0].Key, io.Discard)
+        keys, io.Discard)
     if err != nil {
         panic(err)
     }
