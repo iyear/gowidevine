@@ -29,31 +29,25 @@ func DecryptMP4(r io.Reader, keys []*Key, w io.Writer) error {
 	inMp4, err := mp4.DecodeFile(r)
 	if err != nil {
 		return fmt.Errorf("failed to decode file: %w", err)
-
 	}
 	if !inMp4.IsFragmented() {
 		return errors.New("file is not fragmented")
-
 	}
 	// Handle init segment
 	if inMp4.Init == nil {
 		return errors.New("no init part of file")
-
 	}
 	decryptInfo, err := mp4.DecryptInit(inMp4.Init)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt init: %w", err)
-
 	}
 	if err = inMp4.Init.Encode(w); err != nil {
 		return fmt.Errorf("failed to write init: %w", err)
-
 	}
 	// Decode segments
 	for _, seg := range inMp4.Segments {
 		if err = mp4.DecryptSegment(seg, decryptInfo, key); err != nil {
 			return fmt.Errorf("failed to decrypt segment: %w", err)
-
 		}
 		if err = seg.Encode(w); err != nil {
 			return fmt.Errorf("failed to encode segment: %w", err)
