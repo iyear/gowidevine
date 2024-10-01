@@ -54,7 +54,14 @@ func DecryptMP4(r io.Reader, key []byte, w io.Writer) error {
 	// Decode segments
 	for _, seg := range inMp4.Segments {
 		if err = mp4.DecryptSegment(seg, decryptInfo, key); err != nil {
-			return fmt.Errorf("failed to decrypt segment: %w", err)
+			if err.Error() == "no senc box in traf" {
+				// No SENC box, skip decryption for this segment as samples can have
+				// unencrypted segments followed by encrypted segments. See:
+				// https://github.com/iyear/gowidevine/pull/26#issuecomment-2385960551
+				err = nil
+			} else {
+				return fmt.Errorf("failed to decrypt segment: %w", err)
+			}
 		}
 		if err = seg.Encode(w); err != nil {
 			return fmt.Errorf("failed to encode segment: %w", err)
