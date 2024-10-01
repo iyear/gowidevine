@@ -72,7 +72,7 @@ func main() {
         fmt.Printf("type: %s, id: %x, key: %x\n", key.Type, key.ID, key.Key)
     }
 
-    err = widevine.DecryptMP4(bytes.NewBufferString("encrypted data"),
+    err = widevine.DecryptMP4Auto(bytes.NewBufferString("encrypted data"),
         keys, io.Discard)
     if err != nil {
         panic(err)

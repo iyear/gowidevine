@@ -12,8 +12,9 @@ import (
 
 // Adapted from https://github.com/Eyevinn/mp4ff/blob/v0.46.0/cmd/mp4ff-decrypt/main.go
 
-// DecryptMP4 decrypts a fragmented MP4 file with keys from widevice license. Supports CENC and CBCS schemes.
-func DecryptMP4(r io.Reader, keys []*Key, w io.Writer) error {
+// DecryptMP4Auto decrypts a fragmented MP4 file with the set of keys retreived from the widevice license
+// by automatically selecting the appropriate key. Supports CENC and CBCS schemes.
+func DecryptMP4Auto(r io.Reader, keys []*Key, w io.Writer) error {
 	// Extract content key
 	var key []byte
 	for _, k := range keys {
@@ -25,6 +26,12 @@ func DecryptMP4(r io.Reader, keys []*Key, w io.Writer) error {
 	if key == nil {
 		return fmt.Errorf("no %s key type found in the provided key set", wvpb.License_KeyContainer_CONTENT)
 	}
+	// Execute decryption
+	return DecryptMP4(r, key, w)
+}
+
+// DecryptMP4 decrypts a fragmented MP4 file with keys from widevice license. Supports CENC and CBCS schemes.
+func DecryptMP4(r io.Reader, key []byte, w io.Writer) error {
 	// Initialization
 	inMp4, err := mp4.DecodeFile(r)
 	if err != nil {

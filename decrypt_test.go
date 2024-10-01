@@ -9,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
 func decodeHex(t require.TestingT, h string) []byte {
@@ -39,15 +37,9 @@ func TestDecryptMP4(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		keySet := []*Key{
-			{
-				Type: wvpb.License_KeyContainer_CONTENT,
-				Key:  decodeHex(t, tt.key),
-			},
-		}
 		buf := bytes.NewBuffer(nil)
 
-		err := DecryptMP4(bytes.NewReader(readFile(tt.input)), keySet, buf)
+		err := DecryptMP4(bytes.NewReader(readFile(tt.input)), decodeHex(t, tt.key), buf)
 		require.NoError(t, err, tt.name)
 
 		assert.Equal(t, readFile(tt.expected), buf.Bytes(), tt.name)
