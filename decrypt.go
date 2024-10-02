@@ -1,237 +1,70 @@
 package widevine
 
-// copied from https://github.com/Eyevinn/mp4ff/blob/master/examples/decrypt-cenc/main.go
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/Eyevinn/mp4ff/mp4"
+
+	wvpb "github.com/iyear/gowidevine/widevinepb"
 )
 
-const (
-	schemeCENC = "cenc"
-	schemeCBCS = "cbcs"
-)
+// Adapted from https://github.com/Eyevinn/mp4ff/blob/v0.46.0/cmd/mp4ff-decrypt/main.go
 
-// DecryptMP4 decrypts a fragmented MP4 file with the given key. Supports CENC and CBCS schemes.
+// DecryptMP4Auto decrypts a fragmented MP4 file with the set of keys retreived from the widevice license
+// by automatically selecting the appropriate key. Supports CENC and CBCS schemes.
+func DecryptMP4Auto(r io.Reader, keys []*Key, w io.Writer) error {
+	// Extract content key
+	var key []byte
+	for _, k := range keys {
+		if k.Type == wvpb.License_KeyContainer_CONTENT {
+			key = k.Key
+			break
+		}
+	}
+	if key == nil {
+		return fmt.Errorf("no %s key type found in the provided key set", wvpb.License_KeyContainer_CONTENT)
+	}
+	// Execute decryption
+	return DecryptMP4(r, key, w)
+}
+
+// DecryptMP4 decrypts a fragmented MP4 file with keys from widevice license. Supports CENC and CBCS schemes.
 func DecryptMP4(r io.Reader, key []byte, w io.Writer) error {
+	// Initialization
 	inMp4, err := mp4.DecodeFile(r)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to decode file: %w", err)
 	}
 	if !inMp4.IsFragmented() {
-		return fmt.Errorf("file not fragmented. Not supported")
+		return errors.New("file is not fragmented")
 	}
-
-	tracks := make([]trackInfo, 0, len(inMp4.Init.Moov.Traks))
-
-	moov := inMp4.Init.Moov
-
-	for _, trak := range moov.Traks {
-		trackID := trak.Tkhd.TrackID
-		stsd := trak.Mdia.Minf.Stbl.Stsd
-		var encv *mp4.VisualSampleEntryBox
-		var enca *mp4.AudioSampleEntryBox
-		var schemeType string
-
-		for _, child := range stsd.Children {
-			switch child.Type() {
-			case "encv":
-				encv = child.(*mp4.VisualSampleEntryBox)
-				sinf, err := encv.RemoveEncryption()
-				if err != nil {
-					return err
-				}
-				schemeType = sinf.Schm.SchemeType
-				tracks = append(tracks, trackInfo{
-					trackID: trackID,
-					sinf:    sinf,
-				})
-			case "enca":
-				enca = child.(*mp4.AudioSampleEntryBox)
-				sinf, err := enca.RemoveEncryption()
-				if err != nil {
-					return err
-				}
-				schemeType = sinf.Schm.SchemeType
-				tracks = append(tracks, trackInfo{
-					trackID: trackID,
-					sinf:    sinf,
-				})
-			default:
-				continue
-			}
-		}
-		if schemeType != "" && schemeType != schemeCENC && schemeType != schemeCBCS {
-			return fmt.Errorf("scheme type %s not supported", schemeType)
-		}
-		if schemeType == "" {
-			// Should be track in the clear
-			tracks = append(tracks, trackInfo{
-				trackID: trackID,
-				sinf:    nil,
-			})
-		}
+	// Handle init segment
+	if inMp4.Init == nil {
+		return errors.New("no init part of file")
 	}
-
-	for _, trex := range moov.Mvex.Trexs {
-		for i := range tracks {
-			if tracks[i].trackID == trex.TrackID {
-				tracks[i].trex = trex
-				break
-			}
-		}
-	}
-	psshs := moov.RemovePsshs()
-	for _, pssh := range psshs {
-		psshInfo := bytes.Buffer{}
-		err = pssh.Info(&psshInfo, "", "", "  ")
-		if err != nil {
-			return err
-		}
-		// fmt.Printf("pssh: %s\n", psshInfo.String())
-	}
-
-	// Write the modified init segment
-	err = inMp4.Init.Encode(w)
+	decryptInfo, err := mp4.DecryptInit(inMp4.Init)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to decrypt init: %w", err)
 	}
-
-	err = decryptAndWriteSegments(inMp4.Segments, tracks, key, w)
-	if err != nil {
-		return err
+	if err = inMp4.Init.Encode(w); err != nil {
+		return fmt.Errorf("failed to write init: %w", err)
 	}
-	return nil
-}
-
-type trackInfo struct {
-	trackID uint32
-	sinf    *mp4.SinfBox
-	trex    *mp4.TrexBox
-}
-
-func findTrackInfo(tracks []trackInfo, trackID uint32) trackInfo {
-	for _, ti := range tracks {
-		if ti.trackID == trackID {
-			return ti
-		}
-	}
-	return trackInfo{}
-}
-
-func decryptAndWriteSegments(segs []*mp4.MediaSegment, tracks []trackInfo, key []byte, ofh io.Writer) error {
-	var outNr uint32 = 1
-	for _, seg := range segs {
-		for _, frag := range seg.Fragments {
-			// fmt.Printf("Segment %d, fragment %d\n", i+1, j+1)
-			err := decryptFragment(frag, tracks, key)
-			if err != nil {
-				return err
+	// Decode segments
+	for _, seg := range inMp4.Segments {
+		if err = mp4.DecryptSegment(seg, decryptInfo, key); err != nil {
+			if err.Error() == "no senc box in traf" {
+				// No SENC box, skip decryption for this segment as samples can have
+				// unencrypted segments followed by encrypted segments. See:
+				// https://github.com/iyear/gowidevine/pull/26#issuecomment-2385960551
+				err = nil
+			} else {
+				return fmt.Errorf("failed to decrypt segment: %w", err)
 			}
-			outNr++
 		}
-		if len(seg.Sidxs) > 0 {
-			seg.Sidx = nil // drop sidx inside segment, since not modified properly
-			seg.Sidxs = nil
-		}
-		err := seg.Encode(ofh)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// decryptFragment - decrypt fragment in place
-func decryptFragment(frag *mp4.Fragment, tracks []trackInfo, key []byte) error {
-	moof := frag.Moof
-	var nrBytesRemoved uint64 = 0
-	for _, traf := range moof.Trafs {
-		ti := findTrackInfo(tracks, traf.Tfhd.TrackID)
-		if ti.sinf != nil {
-			schemeType := ti.sinf.Schm.SchemeType
-			if schemeType != schemeCENC && schemeType != schemeCBCS {
-				return fmt.Errorf("scheme type %s not supported", schemeType)
-			}
-			hasSenc, isParsed := traf.ContainsSencBox()
-			if !hasSenc {
-				// if not encrypted, do nothing
-				continue
-			}
-			if !isParsed {
-				defaultPerSampleIVSize := ti.sinf.Schi.Tenc.DefaultPerSampleIVSize
-				err := traf.ParseReadSenc(defaultPerSampleIVSize, moof.StartPos)
-				if err != nil {
-					return fmt.Errorf("parseReadSenc: %w", err)
-				}
-			}
-
-			tenc := ti.sinf.Schi.Tenc
-			samples, err := frag.GetFullSamples(ti.trex)
-			if err != nil {
-				return err
-			}
-
-			err = decryptSamplesInPlace(schemeType, samples, key, tenc, traf.Senc)
-			if err != nil {
-				return err
-			}
-			nrBytesRemoved += traf.RemoveEncryptionBoxes()
-		}
-	}
-	_, psshBytesRemoved := moof.RemovePsshs()
-	nrBytesRemoved += psshBytesRemoved
-	for _, traf := range moof.Trafs {
-		for _, trun := range traf.Truns {
-			trun.DataOffset -= int32(nrBytesRemoved)
-		}
-	}
-
-	return nil
-}
-
-// decryptSample - decrypt samples inplace
-func decryptSamplesInPlace(schemeType string, samples []mp4.FullSample, key []byte, tenc *mp4.TencBox, senc *mp4.SencBox) error {
-	// TODO. Interpret saio and saiz to get to the right place
-	// Saio tells where the IV starts relative to moof start
-	// It typically ends up inside senc (16 bytes after start)
-
-	for i := range samples {
-		encSample := samples[i].Data
-		var iv []byte
-		if len(senc.IVs) == len(samples) {
-			if len(senc.IVs[i]) == 8 {
-				iv = make([]byte, 0, 16)
-				iv = append(iv, senc.IVs[i]...)
-				iv = append(iv, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)
-			} else if len(senc.IVs) == len(samples) {
-				iv = senc.IVs[i]
-			}
-		} else if tenc.DefaultConstantIV != nil {
-			iv = tenc.DefaultConstantIV
-		}
-		if len(iv) == 0 {
-			return fmt.Errorf("iv has length 0")
-		}
-
-		var subSamplePatterns []mp4.SubSamplePattern
-		if len(senc.SubSamples) != 0 {
-			subSamplePatterns = senc.SubSamples[i]
-		}
-		switch schemeType {
-		case schemeCENC:
-			err := mp4.DecryptSampleCenc(encSample, key, iv, subSamplePatterns)
-			if err != nil {
-				return err
-			}
-		case schemeCBCS:
-			err := mp4.DecryptSampleCbcs(encSample, key, iv, subSamplePatterns, tenc)
-			if err != nil {
-				return err
-			}
+		if err = seg.Encode(w); err != nil {
+			return fmt.Errorf("failed to encode segment: %w", err)
 		}
 	}
 	return nil
