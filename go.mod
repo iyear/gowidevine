@@ -6,7 +6,7 @@ require (
 	github.com/Eyevinn/mp4ff v0.46.0
 	github.com/chmike/cmac-go v1.1.0
 	github.com/stretchr/testify v1.9.0
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.35.1
 )
 
 require (
