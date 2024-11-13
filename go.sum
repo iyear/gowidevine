@@ -1,5 +1,5 @@
-github.com/Eyevinn/mp4ff v0.46.0 h1:A8oJA4A3C9fDbX38jEw/26utjNdvmRmrO37tVI5pDk0=
-github.com/Eyevinn/mp4ff v0.46.0/go.mod h1:hJNUUqOBryLAzUW9wpCJyw2HaI+TCd2rUPhafoS5lgg=
+github.com/Eyevinn/mp4ff v0.47.0 h1:XSSHYt5+I0fyOnHWoNwM72DtivlmHFR0V9azgIi+ZVU=
+github.com/Eyevinn/mp4ff v0.47.0/go.mod h1:hJNUUqOBryLAzUW9wpCJyw2HaI+TCd2rUPhafoS5lgg=
 github.com/chmike/cmac-go v1.1.0 h1:aF73ZAEx9N2WdQc93DOJ2fMsBDAGqUtuenjMJMb3kEI=
 github.com/chmike/cmac-go v1.1.0/go.mod h1:wcIN7NRqWSKGuORzd4dReBkoBDE9ZBqfyTVxyDxGeUw=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
