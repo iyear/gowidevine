@@ -1,12 +1,13 @@
 module github.com/iyear/gowidevine
 
 go 1.18
+toolchain go1.24.1
 
 require (
 	github.com/Eyevinn/mp4ff v0.47.0
 	github.com/chmike/cmac-go v1.1.0
 	github.com/stretchr/testify v1.9.0
-	google.golang.org/protobuf v1.36.2
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
